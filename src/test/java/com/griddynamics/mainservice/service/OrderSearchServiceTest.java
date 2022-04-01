@@ -27,6 +27,10 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 @WireMockTest
 class OrderSearchServiceTest {
 
+    private static final String TEST_PHONE = "88005553535";
+    private static final String TEST_RESPONSE_BODY = "{\"orderNumber\":\"228756\",\"userName\":\"userUsernameTest\",\"phoneNumber\":\"" + TEST_PHONE + "\", \"productCode\" : \"123456789\", \"productName\": \"productNameTest\", \"productId\": \"productIdTest1\"}";
+
+
     @RegisterExtension
     static WireMockExtension wireMockServer = WireMockExtension.newInstance()
             .options(wireMockConfig().dynamicPort())
@@ -37,11 +41,10 @@ class OrderSearchServiceTest {
 
     @Test
     void getByPhone() {
-        String testPhone = "88005553535";
 
 
         var uri = UriComponentsBuilder.fromUriString("/orderSearchService/order/phone")
-                .queryParam("phoneNumber", testPhone)
+                .queryParam("phoneNumber", TEST_PHONE)
                 .toUriString();
 
         wireMockServer.stubFor(
@@ -49,10 +52,10 @@ class OrderSearchServiceTest {
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", MediaType.APPLICATION_NDJSON_VALUE)
-                                .withBody("{\"orderNumber\":\"228756\",\"userName\":\"userUsernameTest\",\"phoneNumber\":\"" + testPhone + "\", \"productCode\" : \"123456789\", \"productName\": \"productNameTest\", \"productId\": \"productIdTest1\"}")));
+                                .withBody(TEST_RESPONSE_BODY)));
 
         StepVerifier.create(this.webTestClient.get()
-                        .uri("http://localhost:" + wireMockServer.getPort() + "/orderSearchService/order/phone?phoneNumber=" + testPhone)
+                        .uri("http://localhost:" + wireMockServer.getPort() + "/orderSearchService/order/phone?phoneNumber=" + TEST_PHONE)
                         .accept(MediaType.APPLICATION_NDJSON)
                         .exchange()
                         .expectStatus().isOk()

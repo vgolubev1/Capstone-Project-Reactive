@@ -26,6 +26,9 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 @WireMockTest
 class ProductInfoServiceTest {
 
+    public static final String TEST_PRODUCT_CODE = "213";
+    public static final String TEST_RESPONSE_BODY = "{\"productId\":\"228756\",\"productCode\":\"" + TEST_PRODUCT_CODE + "\",\"productName\":\"testProductName\",\"score\":\"10.2\"}";
+
     @RegisterExtension
     static WireMockExtension wireMockServer = WireMockExtension.newInstance()
             .options(wireMockConfig().dynamicPort())
@@ -36,9 +39,8 @@ class ProductInfoServiceTest {
 
     @Test
     void getByProductCode() {
-        String testProductCode = "228";
         var uri = UriComponentsBuilder.fromUriString("/productInfoService/product/names")
-                .queryParam("productCode", testProductCode)
+                .queryParam("productCode", TEST_PRODUCT_CODE)
                 .toUriString();
 
         wireMockServer.stubFor(
@@ -46,10 +48,10 @@ class ProductInfoServiceTest {
                         .willReturn(aResponse()
                                 .withStatus(200)
                                 .withHeader("Content-Type", MediaType.APPLICATION_NDJSON_VALUE)
-                                .withBody("{\"productId\":\"228756\",\"productCode\":\"" + testProductCode + "\",\"productName\":\"testProductName\",\"score\":\"10.2\"}")));
+                                .withBody(TEST_RESPONSE_BODY)));
 
         StepVerifier.create(this.webTestClient.get()
-                        .uri("http://localhost:" + wireMockServer.getPort() + "/productInfoService/product/names?productCode=" + testProductCode)
+                        .uri("http://localhost:" + wireMockServer.getPort() + "/productInfoService/product/names?productCode=" + TEST_PRODUCT_CODE)
                         .accept(MediaType.APPLICATION_NDJSON)
                         .exchange()
                         .expectStatus().isOk()
