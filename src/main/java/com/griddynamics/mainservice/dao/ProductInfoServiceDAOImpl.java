@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 @Component
 @Slf4j
@@ -25,7 +24,6 @@ public class ProductInfoServiceDAOImpl implements ProductInfoServiceDAO {
         return webClient.get().uri(uri)
                 .retrieve()
                 .bodyToFlux(ProductInfo.class)
-                .publishOn(Schedulers.boundedElastic())
                 .doOnEach(Logger
                         .logOnNext(v ->
                                 log.info("RequestID[" + requestId + "]: Found productInfos: {}", v)))

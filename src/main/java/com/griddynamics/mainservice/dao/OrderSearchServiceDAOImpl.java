@@ -8,7 +8,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Component
 @Slf4j
@@ -26,12 +25,7 @@ public class OrderSearchServiceDAOImpl implements OrderSearchServiceDAO {
         return webClient.get().uri(uri)
                 .retrieve()
                 .bodyToFlux(Order.class)
-                .publishOn(Schedulers.boundedElastic())
-                .doOnEach(Logger
-                        .logOnNext(v ->
-                                log.info("RequestID[" + requestId + "]: Found orders: {}", v)))
-                .doOnEach(Logger
-                        .logOnError(e ->
-                                log.error("RequestID[" + requestId + "]: Order search error - " + e.getMessage())));
+                .doOnEach(Logger.logOnNext(v -> log.info("RequestID[" + requestId + "]: Found orders: {}", v)))
+                .doOnEach(Logger.logOnError(e -> log.error("RequestID[" + requestId + "]: Order search error - " + e.getMessage())));
     }
 }
