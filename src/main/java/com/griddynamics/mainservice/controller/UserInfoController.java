@@ -29,6 +29,13 @@ public class UserInfoController {
     @Autowired
     ProductInfoService productInfoService;
 
+    @GetMapping(value = "user/all")
+    public ResponseEntity<Flux<User>> getAll(){
+        System.out.println("yeah");
+
+            return ResponseEntity.ok(userInfoRepository.findAll());
+    }
+
     @GetMapping(value = "user/get", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public ResponseEntity<Flux<Order>> getProductInfoByUser(@RequestHeader("requestId") String requestId, @RequestParam String userId) {
         Mono<User> user = userInfoRepository.findById(userId);
