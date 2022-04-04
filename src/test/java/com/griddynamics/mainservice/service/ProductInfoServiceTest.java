@@ -1,65 +1,81 @@
 package com.griddynamics.mainservice.service;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.griddynamics.mainservice.dao.ProductInfoServiceDAO;
 import com.griddynamics.mainservice.domain.ProductInfo;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
-import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWireMock
-@AutoConfigureWebTestClient
-@DirtiesContext
-@WireMockTest
+@SpringBootTest()
+@ExtendWith(SpringExtension.class)
 class ProductInfoServiceTest {
 
-    public static final String TEST_PRODUCT_CODE = "213";
-    public static final String TEST_RESPONSE_BODY = "{\"productId\":\"228756\",\"productCode\":\"" + TEST_PRODUCT_CODE + "\",\"productName\":\"testProductName\",\"score\":\"10.2\"}";
+    @Mock
+    ProductInfoServiceDAO productInfoServiceDAO;
 
-    @RegisterExtension
-    static WireMockExtension wireMockServer = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
-            .build();
+    @InjectMocks
+    private ProductInfoServiceImpl productInfoService;
 
-    @Autowired
-    private WebTestClient webTestClient;
+    private static final String TEST_PRODUCT_CODE = "213";
+    private static final String TEST_REQUEST_ID = "12345";
+
+    private final ProductInfo testProductInfo1 = new ProductInfo("testProductId1", TEST_PRODUCT_CODE, "testProductName1", 1.0f);
+    private final ProductInfo testProductInfo2 = new ProductInfo("testProductId2", TEST_PRODUCT_CODE, "testProductName2", 2.0f);
+    private final ProductInfo testProductInfo3 = new ProductInfo("testProductId3", TEST_PRODUCT_CODE, "testProductName3", 3.0f);
+
+    private final Flux<ProductInfo> expectedProductInfo = Flux.just(testProductInfo1, testProductInfo2, testProductInfo3);
+    private final Flux<ProductInfo> expectedProductInfoServiceOff = Flux.just(new ProductInfo());
+
 
     @Test
     void getByProductCode() {
-        var uri = UriComponentsBuilder.fromUriString("/productInfoService/product/names")
-                .queryParam("productCode", TEST_PRODUCT_CODE)
-                .toUriString();
+        Mockito.when(productInfoServiceDAO.getByProductCode(TEST_PRODUCT_CODE, TEST_REQUEST_ID)).thenReturn(expectedProductInfo);
 
-        wireMockServer.stubFor(
-                WireMock.get(uri)
-                        .willReturn(aResponse()
-                                .withStatus(200)
-                                .withHeader("Content-Type", MediaType.APPLICATION_NDJSON_VALUE)
-                                .withBody(TEST_RESPONSE_BODY)));
+        Flux<ProductInfo> actualProductInfo = productInfoService.getByProductCode(TEST_PRODUCT_CODE, TEST_REQUEST_ID);
 
-        StepVerifier.create(this.webTestClient.get()
-                        .uri("http://localhost:" + wireMockServer.getPort() + "/productInfoService/product/names?productCode=" + TEST_PRODUCT_CODE)
-                        .accept(MediaType.APPLICATION_NDJSON)
-                        .exchange()
-                        .expectStatus().isOk()
-                        .expectHeader().contentType(MediaType.APPLICATION_NDJSON_VALUE)
-                        .returnResult(ProductInfo.class)
-                        .getResponseBody()
-                )
-                .expectNextCount(1)
+        StepVerifier.create(actualProductInfo)
+                .expectNext(testProductInfo1)
+                .expectNext(testProductInfo2)
+                .expectNext(testProductInfo3)
+                .verifyComplete();
+    }
+
+    @Test
+    void getByProductCodeWhenServiceIsTurnOff() {
+        Mockito.when(productInfoServiceDAO.getByProductCode(TEST_PRODUCT_CODE, TEST_REQUEST_ID)).thenReturn(expectedProductInfoServiceOff);
+
+        Flux<ProductInfo> actualProductInfo = productInfoService.getByProductCode(TEST_PRODUCT_CODE, TEST_REQUEST_ID);
+
+        StepVerifier.create(actualProductInfo)
+                .expectNext(new ProductInfo())
+                .verifyComplete();
+    }
+
+
+    @Test
+    void getMostRelevant() {
+
+        Mono<ProductInfo> actualMostRelevantProductInfo = productInfoService.getMostRelevant(expectedProductInfo, TEST_REQUEST_ID);
+
+        StepVerifier.create(actualMostRelevantProductInfo)
+                .expectNext(testProductInfo3)
+                .verifyComplete();
+    }
+
+    @Test
+    void getMostRelevantWhenServiceTurnOff() {
+
+        Mono<ProductInfo> actualMostRelevantProductInfo = productInfoService.getMostRelevant(expectedProductInfoServiceOff, TEST_REQUEST_ID);
+
+        StepVerifier.create(actualMostRelevantProductInfo)
+                .expectNext(new ProductInfo())
                 .verifyComplete();
     }
 }

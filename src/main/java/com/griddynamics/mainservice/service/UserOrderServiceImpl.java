@@ -1,6 +1,7 @@
 package com.griddynamics.mainservice.service;
 
 import com.griddynamics.mainservice.Repository.UserInfoRepository;
+import com.griddynamics.mainservice.Util.Logger;
 import com.griddynamics.mainservice.domain.Order;
 import com.griddynamics.mainservice.domain.ProductInfo;
 import com.griddynamics.mainservice.domain.User;
@@ -45,6 +46,9 @@ public class UserOrderServiceImpl implements UserOrderService {
                         ord.setProductId(product.getProductId());
                         return ord;
                     });
-                });
+                })
+                .doOnEach(Logger
+                        .logOnNext(v ->
+                                log.info("RequestID[" + requestId + "]: Found user full order info: {}", v)));
     }
 }
